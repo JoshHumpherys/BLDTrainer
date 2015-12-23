@@ -4,7 +4,9 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.swing.JFrame;
@@ -30,14 +32,14 @@ public class Main extends JFrame {
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setVisible(true);
 		
-		Map<String, String> pairs = new HashMap<String, String>();
+		List<Pair> list = new ArrayList<Pair>();
 		try {
 			FileReader fr = new FileReader(IMAGES_FILE_DIR);
 			BufferedReader br = new BufferedReader(fr);
 			String line = null;
 			while((line = br.readLine()) != null) {
 				int i = line.indexOf(" ");
-				pairs.put(line.substring(0, i), line.substring(i + 1));
+				list.add(new Pair(line.substring(0, i), line.substring(i + 1)));
 			}
 		}
 		catch(FileNotFoundException e) {
@@ -48,6 +50,24 @@ public class Main extends JFrame {
 			JOptionPane.showMessageDialog(this, "Error reading file: " + IMAGES_FILE_DIR);
 			System.exit(1);
 		}
-		System.out.println(pairs);
+		System.out.println(list);
+	}
+	
+	private class Pair {
+		private String pair, image;
+		public Pair(String pair, String image) {
+			this.pair = pair;
+			this.image = image;
+		}
+		public String getPair() {
+			return pair;
+		}
+		public String getImage() {
+			return image;
+		}
+		@Override
+		public String toString() {
+			return pair + "=" + image;
+		}
 	}
 }
