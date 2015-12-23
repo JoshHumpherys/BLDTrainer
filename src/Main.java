@@ -5,9 +5,9 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
@@ -50,6 +50,7 @@ public class Main extends JFrame {
 			JOptionPane.showMessageDialog(this, "Error reading file: " + IMAGES_FILE_DIR);
 			System.exit(1);
 		}
+		Collections.shuffle(list);
 		System.out.println(list);
 	}
 	
