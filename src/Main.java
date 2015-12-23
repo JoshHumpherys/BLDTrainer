@@ -1,6 +1,7 @@
 import java.awt.Dimension;
+import java.awt.Image;
+import java.awt.Insets;
 import java.awt.Toolkit;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -31,7 +32,9 @@ public class Main extends JFrame {
 	
 	public Main() {
 		Dimension screenDimension = Toolkit.getDefaultToolkit().getScreenSize();
-		setPreferredSize(new Dimension((int)(screenDimension.getWidth() * 2 / 3), (int)(screenDimension.getHeight() * 2 / 3)));
+		int width = (int)(screenDimension.getWidth() * 2 / 3);
+		int height = (int)(screenDimension.getHeight() * 2 / 3);
+		setPreferredSize(new Dimension(width, height));
 		pack();
 		setLocationRelativeTo(null);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -56,12 +59,12 @@ public class Main extends JFrame {
 			System.exit(1);
 		}
 		Collections.shuffle(list);
-		System.out.println(list);
 		
 		JPanel panel = new JPanel();
 		add(panel);
 		
-		JLabel image = new JLabel(new ImageIcon(list.get(0).getImage()));
+		Insets insets = getInsets();
+		JLabel image = new JLabel(new ImageIcon(list.get(0).getImage(width - insets.right - insets.left, height - insets.top - insets.bottom)));
 		panel.add(image);
 		
 		panel.repaint();
@@ -69,7 +72,7 @@ public class Main extends JFrame {
 	
 	private class Data {
 		private String pair, imageString;
-		private BufferedImage image;
+		private Image image;
 		public Data(String pair, String imageString) {
 			this.pair = pair;
 			this.image = image;
@@ -80,7 +83,7 @@ public class Main extends JFrame {
 		public String getImageString() {
 			return imageString;
 		}
-		public BufferedImage getImage() {
+		public Image getImage(int width, int height) {
 			if(image == null) {
 				try {
 					image = ImageIO.read(new File("img/" + pair + ".png"));
@@ -88,6 +91,16 @@ public class Main extends JFrame {
 				catch(IOException e) {
 					JOptionPane.showMessageDialog(new JFrame(), "Error reading or opening image: img/" + pair + ".png");
 					System.exit(1);
+				}
+				double imgWidth = image.getWidth(null);
+				double imgHeight = image.getHeight(null);
+				if(imgWidth / width > imgHeight / height) {
+					// scale width to max
+					image = image.getScaledInstance(width, (int)(width * imgHeight / imgWidth), Image.SCALE_SMOOTH);
+				}
+				else {
+					// scale height to max
+					image = image.getScaledInstance((int)(height * imgWidth / imgHeight), height, Image.SCALE_SMOOTH);
 				}
 				return image;
 			}
