@@ -1,4 +1,5 @@
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.GridBagLayout;
 import java.awt.Image;
 import java.awt.Insets;
@@ -39,6 +40,7 @@ public class Main extends JFrame {
 	public JPanel panel;
 	public JLabel label;
 	public int panelWidth, panelHeight;
+	public Font font;
 	public Main() {
 		Dimension screenDimension = Toolkit.getDefaultToolkit().getScreenSize();
 		int width = (int)(screenDimension.getWidth() * 2 / 3);
@@ -48,6 +50,7 @@ public class Main extends JFrame {
 		setLocationRelativeTo(null);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setVisible(true);
+		font = new Font("TimesRoman", Font.PLAIN, height / 10);
 		
 		list = new ArrayList<Data>();
 		try {
@@ -80,6 +83,7 @@ public class Main extends JFrame {
 		add(panel);
 		
 		label = next(panelWidth, panelHeight);
+		label.setFont(font);
 		panel.add(label);
 		panel.repaint();
 		
@@ -130,7 +134,6 @@ public class Main extends JFrame {
 	private JLabel next(int width, int height) {
 		if(index < list.size() - 1) {
 			index++;
-			System.out.println(list.get(index));
 			return new JLabel(new ImageIcon(list.get(index).getImage(width, height)));
 		}
 		else {
@@ -160,7 +163,10 @@ public class Main extends JFrame {
 		toShowImage = !toShowImage;
 		
 		if(!toShowImage) {
-			return new JLabel(data.getPair() + ", " + data.getImageString());
+//			JLabel returnLabel = new JLabel(data.getPair() + ", " + data.getImageString());
+			JLabel returnLabel = new JLabel(data.getPair());
+			returnLabel.setFont(font);
+			return returnLabel;
 		}
 		else {
 			index++;
