@@ -33,7 +33,7 @@ public class Main extends JFrame {
 		});
 	}
 	
-	public boolean image = true;
+	public boolean toShowImage = true;
 	public int index = -1;
 	public List<Data> list;
 	public JPanel panel;
@@ -86,11 +86,28 @@ public class Main extends JFrame {
 		addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {
+				System.out.println(toShowImage);
 				switch(e.getKeyCode()) {
 				case KeyEvent.VK_RIGHT:
 				case KeyEvent.VK_D:
 					panel.remove(label);
 					label = next(panelWidth, panelHeight);
+					if(!toShowImage) {
+						toShowImage = true;
+						label = flip(panelWidth, panelHeight);
+					}
+					panel.add(label);
+					panel.revalidate();
+					panel.repaint();
+					break;
+				case KeyEvent.VK_LEFT:
+				case KeyEvent.VK_A:
+					panel.remove(label);
+					label = last(panelWidth, panelHeight);
+					if(!toShowImage) {
+						toShowImage = true;
+						label = flip(panelWidth, panelHeight);
+					}
 					panel.add(label);
 					panel.revalidate();
 					panel.repaint();
@@ -101,14 +118,6 @@ public class Main extends JFrame {
 				case KeyEvent.VK_S:
 					panel.remove(label);
 					label = flip(panelWidth, panelHeight);
-					panel.add(label);
-					panel.revalidate();
-					panel.repaint();
-					break;
-				case KeyEvent.VK_LEFT:
-				case KeyEvent.VK_A:
-					panel.remove(label);
-					label = last(panelWidth, panelHeight);
 					panel.add(label);
 					panel.revalidate();
 					panel.repaint();
@@ -139,7 +148,7 @@ public class Main extends JFrame {
 	
 	private JLabel last(int width, int height) {
 		index -= 2;
-		while(index < -1) {
+		if(index < -1) {
 			index += list.size();
 		}
 		return next(width, height);
@@ -147,13 +156,13 @@ public class Main extends JFrame {
 	
 	private JLabel flip(int width, int height) {
 		Data data = list.get(index);
+
+		toShowImage = !toShowImage;
 		
-		if(image) {
-			image = !image;
+		if(!toShowImage) {
 			return new JLabel(data.getPair() + ", " + data.getImageString());
 		}
 		else {
-			image = !image;
 			index++;
 			return last(width, height);
 		}
