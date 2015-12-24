@@ -36,7 +36,8 @@ public class Main extends JFrame {
 	public boolean image = true;
 	public int index = -1;
 	public List<Data> list;
-	JLabel label;
+	public JLabel label;
+	public int panelWidth, panelHeight;
 	public Main() {
 		Dimension screenDimension = Toolkit.getDefaultToolkit().getScreenSize();
 		int width = (int)(screenDimension.getWidth() * 2 / 3);
@@ -65,15 +66,16 @@ public class Main extends JFrame {
 			JOptionPane.showMessageDialog(new JFrame(), "Error reading file: " + IMAGES_FILE_DIR);
 			System.exit(1);
 		}
+		Insets insets = getInsets();
+		panelWidth = width - insets.right - insets.left;
+		panelHeight = height - insets.top - insets.bottom;
 		Collections.shuffle(list);
+		ImageLoader il = new ImageLoader();
+		il.start();
 		
 		JPanel panel = new JPanel();
 		panel.setLayout(new GridBagLayout());
 		add(panel);
-		
-		Insets insets = getInsets();
-		int panelWidth = width - insets.right - insets.left;
-		int panelHeight = height - insets.top - insets.bottom;
 		
 		label = next(panelWidth, panelHeight);
 		panel.add(label);
@@ -145,14 +147,20 @@ public class Main extends JFrame {
 		Data data = list.get(index);
 		
 		if(image) {
-		
-		image = !image;
-		return new JLabel(data.getPair() + ", " + data.getImageString());
+			image = !image;
+			return new JLabel(data.getPair() + ", " + data.getImageString());
 		}
 		else {
 			image = !image;
 			index++;
 			return last(width, height);
+		}
+	}
+	
+	private synchronized void loadImages() {
+		for(Data d : list) {
+//			d.getImage(panelWidth, panelHeight);
+			System.out.println("loading " + d.getImage(panelWidth, panelHeight) + ", " + d.getImageString());
 		}
 	}
 	
@@ -195,6 +203,23 @@ public class Main extends JFrame {
 		@Override
 		public String toString() {
 			return pair + "=" + imageString;
+		}
+	}
+	
+	private class ImageLoader implements Runnable {
+		public ImageLoader() {
+			
+		}
+		@Override
+		public void run() {
+			System.out.println("running thread");
+			loadImages();
+			System.out.println("done loading images");
+		}
+		public void start() {
+			Thread t = new Thread(this, "ImageLoader");
+			System.out.println("starting thread");
+			t.start();
 		}
 	}
 }
