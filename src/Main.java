@@ -36,6 +36,7 @@ public class Main extends JFrame {
 	public boolean image = true;
 	public int index = -1;
 	public List<Data> list;
+	public JPanel panel;
 	public JLabel label;
 	public int panelWidth, panelHeight;
 	public Main() {
@@ -70,10 +71,11 @@ public class Main extends JFrame {
 		panelWidth = width - insets.right - insets.left;
 		panelHeight = height - insets.top - insets.bottom;
 		Collections.shuffle(list);
+		
 		ImageLoader il = new ImageLoader();
 		il.start();
 		
-		JPanel panel = new JPanel();
+		panel = new JPanel();
 		panel.setLayout(new GridBagLayout());
 		add(panel);
 		
@@ -157,10 +159,13 @@ public class Main extends JFrame {
 		}
 	}
 	
-	private synchronized void loadImages() {
+	// TODO use synchronized but then first image won't load until all are loaded
+	private JPanel loadingPanel = new JPanel();
+	private void loadImages() {
 		for(Data d : list) {
-//			d.getImage(panelWidth, panelHeight);
-			System.out.println("loading " + d.getImage(panelWidth, panelHeight) + ", " + d.getImageString());
+			// load image
+			// for some reason, adding to a random panel makes it load almost instantly on real panel
+			loadingPanel.add(new JLabel(new ImageIcon(d.getImage(panelWidth, panelHeight))));
 		}
 	}
 	
@@ -207,18 +212,15 @@ public class Main extends JFrame {
 	}
 	
 	private class ImageLoader implements Runnable {
-		public ImageLoader() {
-			
-		}
+		public ImageLoader() {}
+		
 		@Override
 		public void run() {
-			System.out.println("running thread");
 			loadImages();
-			System.out.println("done loading images");
 		}
+		
 		public void start() {
 			Thread t = new Thread(this, "ImageLoader");
-			System.out.println("starting thread");
 			t.start();
 		}
 	}
