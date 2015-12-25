@@ -13,7 +13,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -34,6 +37,9 @@ public class Main extends JFrame {
 		});
 	}
 	
+	public boolean all = true;
+	public int mode = -1;
+	public Map<Integer, String> modes;
 	public boolean toShowImage = true;
 	public int index = -1;
 	public List<Data> list;
@@ -57,9 +63,37 @@ public class Main extends JFrame {
 			FileReader fr = new FileReader(IMAGES_FILE_DIR);
 			BufferedReader br = new BufferedReader(fr);
 			String line = null;
+			
+			// Read mode names
+			modes = new TreeMap<Integer, String>();
 			while((line = br.readLine()) != null) {
-				int i = line.indexOf(" ");
-				list.add(new Data(line.substring(0, i), line.substring(i + 1)));
+				if(line.indexOf("#") == 0) {
+					break;
+				}
+				try {
+					int splitIndex = line.indexOf(" ");
+					int modeNumber = Integer.parseInt(line.substring(0, splitIndex));
+					if(mode == -1) {
+						mode = modeNumber;
+					}
+					modes.put(modeNumber, line.substring(splitIndex + 1));
+				}
+				catch(NumberFormatException e) {
+					JOptionPane.showMessageDialog(new JFrame(), "Error parsing file: " + IMAGES_FILE_DIR);
+					System.exit(1);
+				}
+			}
+			
+			// Read data
+			while((line = br.readLine()) != null) {
+				if(line.indexOf(" ", line.indexOf(" ") + 1) != -1) {
+					String[] columns = line.split(" ");
+					list.add(new Data(Integer.parseInt(columns[0]), columns[1], columns[2]));
+				}
+				else {
+					JOptionPane.showMessageDialog(new JFrame(), "Error parsing file: " + IMAGES_FILE_DIR);
+					System.exit(1);
+				}
 			}
 		}
 		catch(FileNotFoundException e) {
@@ -68,6 +102,10 @@ public class Main extends JFrame {
 		}
 		catch(IOException e) {
 			JOptionPane.showMessageDialog(new JFrame(), "Error reading file: " + IMAGES_FILE_DIR);
+			System.exit(1);
+		}
+		catch(NumberFormatException e) {
+			JOptionPane.showMessageDialog(new JFrame(), "Error parsing file: " + IMAGES_FILE_DIR);
 			System.exit(1);
 		}
 		Insets insets = getInsets();
@@ -82,7 +120,7 @@ public class Main extends JFrame {
 		panel.setLayout(new GridBagLayout());
 		add(panel);
 		
-		label = next(panelWidth, panelHeight);
+		label = next(panelWidth, panelHeight, true);
 		label.setFont(font);
 		panel.add(label);
 		panel.repaint();
@@ -90,12 +128,37 @@ public class Main extends JFrame {
 		addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {
-				System.out.println(toShowImage);
 				switch(e.getKeyCode()) {
+				case KeyEvent.VK_SHIFT:
+					String prompt = "Modes:\n0) All";
+					Iterator mapIterator = modes.entrySet().iterator();
+					while(mapIterator.hasNext()) {
+						Map.Entry entry = (Map.Entry)mapIterator.next();
+						prompt += entry.getKey() + ") " + entry.getValue() + (mapIterator.hasNext() ? "\n" : "");
+//						mapIterator.remove();
+					}
+					String requestedMode = JOptionPane.showInputDialog(new JFrame(), prompt);
+					try {
+						if(requestedMode.equals("0")) {
+							mode = 0;
+							all = true;
+						}
+						else {
+							mode = Integer.parseInt(requestedMode);
+							all = false;
+						}
+					}
+					catch(NumberFormatException nfe) {
+						JOptionPane.showMessageDialog(new JFrame(), "Error: Bad input");
+					}
+					// only break if all or currently on same mode
+					if(all || list.get(index).getMode() == mode) {
+						break;
+					}
 				case KeyEvent.VK_RIGHT:
 				case KeyEvent.VK_D:
 					panel.remove(label);
-					label = next(panelWidth, panelHeight);
+					label = next(panelWidth, panelHeight, true);
 					if(!toShowImage) {
 						toShowImage = true;
 						label = flip(panelWidth, panelHeight);
@@ -131,15 +194,26 @@ public class Main extends JFrame {
 		});
 	}
 	
-	private JLabel next(int width, int height) {
+	// TODO fix StackOverlowError when there are no images of a certain mode
+	private JLabel next(int width, int height, boolean fromNext) {
 		if(index < list.size() - 1) {
 			index++;
-			return new JLabel(new ImageIcon(list.get(index).getImage(width, height)));
+			if(all || list.get(index).getMode() == mode) {
+				return new JLabel(new ImageIcon(list.get(index).getImage(width, height)));
+			}
+			else {
+				if(fromNext) {
+					return next(width, height, true);
+				}
+				else {
+					return last(width, height);
+				}
+			}
 		}
 		else {
 			index = -1;
 			if(list.size() != 0) {
-				return next(width, height);
+				return next(width, height, true);
 			}
 			else {
 				JOptionPane.showMessageDialog(new JFrame(), "Error: images.txt does not contain image letter pairs");
@@ -154,7 +228,7 @@ public class Main extends JFrame {
 		if(index < -1) {
 			index += list.size();
 		}
-		return next(width, height);
+		return next(width, height, false);
 	}
 	
 	private JLabel flip(int width, int height) {
@@ -180,16 +254,23 @@ public class Main extends JFrame {
 		for(Data d : list) {
 			// load image
 			// for some reason, adding to a random panel makes it load almost instantly on real panel
-			loadingPanel.add(new JLabel(new ImageIcon(d.getImage(panelWidth, panelHeight))));
+//			if(d.getMode() == mode) {
+				loadingPanel.add(new JLabel(new ImageIcon(d.getImage(panelWidth, panelHeight))));
+//			}
 		}
 	}
 	
 	private class Data {
+		private int mode;
 		private String pair, imageString;
 		private Image image;
-		public Data(String pair, String imageString) {
+		public Data(int mode, String pair, String imageString) {
+			this.mode = mode;
 			this.pair = pair;
 			this.imageString = imageString;
+		}
+		public int getMode() {
+			return mode;
 		}
 		public String getPair() {
 			return pair;
@@ -225,7 +306,6 @@ public class Main extends JFrame {
 			return pair + "=" + imageString;
 		}
 	}
-	
 	private class ImageLoader implements Runnable {
 		public ImageLoader() {}
 		
