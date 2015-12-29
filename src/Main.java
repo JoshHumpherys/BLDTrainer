@@ -249,49 +249,6 @@ public class Main extends JFrame {
 		}
 	}
 	
-//	// TODO use synchronized but then first image won't load until all are loaded
-//	private JPanel loadingPanel = new JPanel();
-////	private synchronized void loadImages() {
-//	private synchronized void loadImages() {
-////		for(Data d : list) {
-////			// load image
-////			// for some reason, adding to a random panel makes it load almost instantly on real panel
-////			// EDIT: oh probably garbage collection
-////			// EDIT: with too many images I get an OutOfMemoryError
-//////			if(d.getMode() == mode) {
-////				loadingPanel.add(new JLabel(new ImageIcon(d.getImage(panelWidth, panelHeight))));
-//////			}
-////		}
-//		if(loadedImages == null) {
-//			loadedImages = new ArrayList<LoadedImage>();
-//			for(int i = -5; i <= 5; i++) {
-//				loadedImages.add(new LoadedImage(list.get(getIndex(index + i)).getPair(), panelWidth, panelHeight));
-//			}
-//			System.out.println(loadedImages);
-//		}
-//	}
-//	
-//	private int getIndex(int i) {
-//		while(i < 0) {
-//			i += list.size();
-//		}
-//		while(i > list.size() - 1) {
-//			i -= list.size();
-//		}
-//		return i;
-//	}
-//	
-//	private void updateLoadedImages(boolean forward) {
-//		if(forward) {
-//			loadedImages.remove(0);
-//			loadedImages.add(new LoadedImage(list.get(getIndex(index + 5)).getPair(), panelWidth, panelHeight));
-//		}
-//		else {
-//			loadedImages.remove(loadedImages.size() - 1);
-//			loadedImages.add(new LoadedImage(list.get(getIndex(index - 5)).getPair(), panelWidth, panelHeight));
-//		}
-//	}
-	
 	private class Data {
 		private int mode;
 		private String pair, imageString;
@@ -340,23 +297,6 @@ public class Main extends JFrame {
 			return image;
 		}
 	}
-	
-//	private class ImageLoader implements Runnable {
-//		public ImageLoader() {}
-//		
-//		@Override
-//		public void run() {
-//			loadImages();
-//		}
-//		public void update(boolean forward) {
-//			updateLoadedImages(forward);
-//		}
-//		
-//		public void start() {
-//			Thread t = new Thread(this, "ImageLoader");
-//			t.start();
-//		}
-//	}
 	
 	private class ImageLoader extends Thread {
 		private List<Data> list;
