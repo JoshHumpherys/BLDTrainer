@@ -126,7 +126,7 @@ public class Main extends JFrame {
 		Collections.shuffle(list);
 		
 		il = new ImageLoader(list, panelWidth, panelHeight);
-		il.run();
+		il.start();
 		
 		panel = new JPanel();
 		panel.setLayout(new GridBagLayout());
@@ -369,7 +369,7 @@ public class Main extends JFrame {
 //		}
 //	}
 	
-	private class ImageLoader implements Runnable {
+	private class ImageLoader extends Thread {
 		private List<Data> list;
 		private int panelWidth, panelHeight;
 		public ImageLoader(List<Data> list, int panelWidth, int panelHeight) {
