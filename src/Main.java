@@ -212,15 +212,17 @@ public class Main extends JFrame {
 	}
 	
 	private JLabel next(int width, int height, int n) {
-		index += n;
+		addToIndex(n);
+//		index += n;
 		int startIndex = index;
 		do {
-			index %= list.size();
+//			index %= list.size();
 			Data current = list.get(index);
 			if(all || current.getMode() == mode) {
 				return new JLabel(new ImageIcon(new LoadedImage(current.getPair(), width, height).getImage()));
 			}
-			index += Integer.signum(n);
+			addToIndex(Integer.signum(n));
+//			index += Integer.signum(n);
 		}
 		while(index != startIndex);
 		return null;
@@ -247,6 +249,12 @@ public class Main extends JFrame {
 		else {
 			return current(width, height);
 		}
+	}
+	
+	private void addToIndex(int n) {
+		index += n;
+		int size = list.size();
+		index = ((index % size) + size) % size;
 	}
 	
 	private class Data {
@@ -299,18 +307,21 @@ public class Main extends JFrame {
 	}
 	
 	private class ImageLoader extends Thread {
+		private LoadedImage current;
+		
 		private List<Data> list;
-		private int panelWidth, panelHeight;
-		public ImageLoader(List<Data> list, int panelWidth, int panelHeight) {
+		private int width, height;
+		public ImageLoader(List<Data> list, int width, int height) {
 			this.list = new ArrayList<Data>();
 			for(Data d : list) {
 				this.list.add(d);
 			}
+			this.width = width;
+			this.height = height;
 		}
 		
 		@Override
 		public void run() {
-			System.out.println(list);
 		}
 	}
 }
