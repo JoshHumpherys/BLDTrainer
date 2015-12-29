@@ -53,7 +53,7 @@ public class Main extends JFrame {
 	public Map<Integer, String> modes;
 	public List<Data> list;
 	public boolean toShowImage = true;
-	public int index = -1;
+	public int index = 0;
 	
 	public JPanel panel;
 	public JLabel label;
@@ -99,6 +99,7 @@ public class Main extends JFrame {
 			// Read data
 			while((line = br.readLine()) != null) {
 				if(line.indexOf(" ", line.indexOf(" ") + 1) != -1) {
+					// TODO fix for multiple words
 					String[] columns = line.split(" ");
 					list.add(new Data(Integer.parseInt(columns[0]), columns[1], columns[2]));
 				}
@@ -132,7 +133,7 @@ public class Main extends JFrame {
 		panel.setLayout(new GridBagLayout());
 		add(panel);
 		
-		label = next(panelWidth, panelHeight, true);
+		label = current(panelWidth, panelHeight);
 		label.setFont(font);
 		panel.add(label);
 		panel.repaint();
@@ -170,7 +171,7 @@ public class Main extends JFrame {
 				case KeyEvent.VK_RIGHT:
 				case KeyEvent.VK_D:
 					panel.remove(label);
-					label = next(panelWidth, panelHeight, true);
+					label = next(panelWidth, panelHeight);
 					if(!toShowImage) {
 						toShowImage = true;
 						label = flip(panelWidth, panelHeight);
@@ -206,42 +207,31 @@ public class Main extends JFrame {
 		});
 	}
 	
-	// TODO fix StackOverlowError when there are no images of a certain mode
-	private JLabel next(int width, int height, boolean fromNext) {
-		if(index < list.size() - 1) {
-			index++;
-			if(all || list.get(index).getMode() == mode) {
-//				return new JLabel(new ImageIcon(list.get(index).getImage(width, height)));
-				return new JLabel(new ImageIcon(new LoadedImage(list.get(index).getPair(), width, height).getImage()));
+	private JLabel next(int width, int height) {
+		return next(width, height, 1);
+	}
+	
+	private JLabel next(int width, int height, int n) {
+		index += n;
+		int startIndex = index;
+		do {
+			index %= list.size();
+			Data current = list.get(index);
+			if(all || current.getMode() == mode) {
+				return new JLabel(new ImageIcon(new LoadedImage(current.getPair(), width, height).getImage()));
 			}
-			else {
-				if(fromNext) {
-					return next(width, height, true);
-				}
-				else {
-					return last(width, height);
-				}
-			}
+			index += Integer.signum(n);
 		}
-		else {
-			index = -1;
-			if(list.size() != 0) {
-				return next(width, height, true);
-			}
-			else {
-				JOptionPane.showMessageDialog(new JFrame(), "Error: images.txt does not contain image letter pairs");
-				System.exit(1);
-				return null;
-			}
-		}
+		while(index != startIndex);
+		return null;
 	}
 	
 	private JLabel last(int width, int height) {
-		index -= 2;
-		if(index < -1) {
-			index += list.size();
-		}
-		return next(width, height, false);
+		return next(width, height, -1);
+	}
+	
+	private JLabel current(int width, int height) {
+		return next(width, height, 0);
 	}
 	
 	private JLabel flip(int width, int height) {
@@ -255,8 +245,7 @@ public class Main extends JFrame {
 			return returnLabel;
 		}
 		else {
-			index++;
-			return last(width, height);
+			return current(width, height);
 		}
 	}
 	
