@@ -37,12 +37,24 @@ public class Main extends JFrame {
 		});
 	}
 	
+	// read file
+	// store mode, pair, string in arraylist
+	// shuffle
+	// start imageloader thread
+	// imageloader thread loads the next 10 and previous 10 images of that mode in 2 linked lists
+	// imageloader wait
+	// when changing images, set boolean for direction and notify imageloader
+	
+//	public ImageLoader il;
+	public boolean dirForward;
+	
 	public boolean all = true;
 	public int mode = -1;
 	public Map<Integer, String> modes;
+	public List<Data> list;
 	public boolean toShowImage = true;
 	public int index = -1;
-	public List<Data> list;
+	
 	public JPanel panel;
 	public JLabel label;
 	public int panelWidth, panelHeight;
@@ -113,8 +125,8 @@ public class Main extends JFrame {
 		panelHeight = height - insets.top - insets.bottom;
 		Collections.shuffle(list);
 		
-		ImageLoader il = new ImageLoader();
-		il.start();
+//		il = new ImageLoader();
+//		il.start();
 		
 		panel = new JPanel();
 		panel.setLayout(new GridBagLayout());
@@ -130,7 +142,7 @@ public class Main extends JFrame {
 			public void keyPressed(KeyEvent e) {
 				switch(e.getKeyCode()) {
 				case KeyEvent.VK_SHIFT:
-					String prompt = "Modes:\n0) All";
+					String prompt = "Modes:\n0) All\n";
 					Iterator mapIterator = modes.entrySet().iterator();
 					while(mapIterator.hasNext()) {
 						Map.Entry entry = (Map.Entry)mapIterator.next();
@@ -199,7 +211,8 @@ public class Main extends JFrame {
 		if(index < list.size() - 1) {
 			index++;
 			if(all || list.get(index).getMode() == mode) {
-				return new JLabel(new ImageIcon(list.get(index).getImage(width, height)));
+//				return new JLabel(new ImageIcon(list.get(index).getImage(width, height)));
+				return new JLabel(new ImageIcon(new LoadedImage(list.get(index).getPair(), width, height).getImage()));
 			}
 			else {
 				if(fromNext) {
@@ -237,7 +250,6 @@ public class Main extends JFrame {
 		toShowImage = !toShowImage;
 		
 		if(!toShowImage) {
-//			JLabel returnLabel = new JLabel(data.getPair() + ", " + data.getImageString());
 			JLabel returnLabel = new JLabel(data.getPair());
 			returnLabel.setFont(font);
 			return returnLabel;
@@ -248,22 +260,52 @@ public class Main extends JFrame {
 		}
 	}
 	
-	// TODO use synchronized but then first image won't load until all are loaded
-	private JPanel loadingPanel = new JPanel();
-	private void loadImages() {
-		for(Data d : list) {
-			// load image
-			// for some reason, adding to a random panel makes it load almost instantly on real panel
-//			if(d.getMode() == mode) {
-				loadingPanel.add(new JLabel(new ImageIcon(d.getImage(panelWidth, panelHeight))));
+//	// TODO use synchronized but then first image won't load until all are loaded
+//	private JPanel loadingPanel = new JPanel();
+////	private synchronized void loadImages() {
+//	private synchronized void loadImages() {
+////		for(Data d : list) {
+////			// load image
+////			// for some reason, adding to a random panel makes it load almost instantly on real panel
+////			// EDIT: oh probably garbage collection
+////			// EDIT: with too many images I get an OutOfMemoryError
+//////			if(d.getMode() == mode) {
+////				loadingPanel.add(new JLabel(new ImageIcon(d.getImage(panelWidth, panelHeight))));
+//////			}
+////		}
+//		if(loadedImages == null) {
+//			loadedImages = new ArrayList<LoadedImage>();
+//			for(int i = -5; i <= 5; i++) {
+//				loadedImages.add(new LoadedImage(list.get(getIndex(index + i)).getPair(), panelWidth, panelHeight));
 //			}
-		}
-	}
+//			System.out.println(loadedImages);
+//		}
+//	}
+//	
+//	private int getIndex(int i) {
+//		while(i < 0) {
+//			i += list.size();
+//		}
+//		while(i > list.size() - 1) {
+//			i -= list.size();
+//		}
+//		return i;
+//	}
+//	
+//	private void updateLoadedImages(boolean forward) {
+//		if(forward) {
+//			loadedImages.remove(0);
+//			loadedImages.add(new LoadedImage(list.get(getIndex(index + 5)).getPair(), panelWidth, panelHeight));
+//		}
+//		else {
+//			loadedImages.remove(loadedImages.size() - 1);
+//			loadedImages.add(new LoadedImage(list.get(getIndex(index - 5)).getPair(), panelWidth, panelHeight));
+//		}
+//	}
 	
 	private class Data {
 		private int mode;
 		private String pair, imageString;
-		private Image image;
 		public Data(int mode, String pair, String imageString) {
 			this.mode = mode;
 			this.pair = pair;
@@ -278,45 +320,52 @@ public class Main extends JFrame {
 		public String getImageString() {
 			return imageString;
 		}
-		public Image getImage(int width, int height) {
-			if(image == null) {
-				try {
-					image = ImageIO.read(new File("img/" + pair + ".png"));
-				}
-				catch(IOException e) {
-					JOptionPane.showMessageDialog(new JFrame(), "Error reading or opening image: img/" + pair + ".png");
-					System.exit(1);
-				}
-				double imgWidth = image.getWidth(null);
-				double imgHeight = image.getHeight(null);
-				if(imgWidth / width > imgHeight / height) {
-					// scale width to max
-					image = image.getScaledInstance(width, (int)(width * imgHeight / imgWidth), Image.SCALE_SMOOTH);
-				}
-				else {
-					// scale height to max
-					image = image.getScaledInstance((int)(height * imgWidth / imgHeight), height, Image.SCALE_SMOOTH);
-				}
-				return image;
-			}
-			else return image;
-		}
 		@Override
 		public String toString() {
 			return pair + "=" + imageString;
 		}
 	}
-	private class ImageLoader implements Runnable {
-		public ImageLoader() {}
-		
-		@Override
-		public void run() {
-			loadImages();
+	
+	private class LoadedImage {
+		private Image image;
+		public LoadedImage(String pair, int width, int height) {
+			try {
+				image = ImageIO.read(new File("img/" + pair + ".png"));
+			}
+			catch(IOException e) {
+				JOptionPane.showMessageDialog(new JFrame(), "Error reading or opening image: img/" + pair + ".png");
+				System.exit(1);
+			}
+			double imgWidth = image.getWidth(null);
+			double imgHeight = image.getHeight(null);
+			if(imgWidth / width > imgHeight / height) {
+				// scale width to max
+				image = image.getScaledInstance(width, (int)(width * imgHeight / imgWidth), Image.SCALE_SMOOTH);
+			}
+			else {
+				// scale height to max
+				image = image.getScaledInstance((int)(height * imgWidth / imgHeight), height, Image.SCALE_SMOOTH);
+			}
 		}
-		
-		public void start() {
-			Thread t = new Thread(this, "ImageLoader");
-			t.start();
+		public Image getImage() {
+			return image;
 		}
 	}
+	
+//	private class ImageLoader implements Runnable {
+//		public ImageLoader() {}
+//		
+//		@Override
+//		public void run() {
+//			loadImages();
+//		}
+//		public void update(boolean forward) {
+//			updateLoadedImages(forward);
+//		}
+//		
+//		public void start() {
+//			Thread t = new Thread(this, "ImageLoader");
+//			t.start();
+//		}
+//	}
 }
