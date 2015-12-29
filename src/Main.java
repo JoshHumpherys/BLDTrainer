@@ -45,7 +45,7 @@ public class Main extends JFrame {
 	// imageloader wait
 	// when changing images, set boolean for direction and notify imageloader
 	
-//	public ImageLoader il;
+	public ImageLoader il;
 	public boolean dirForward;
 	
 	public boolean all = true;
@@ -125,8 +125,8 @@ public class Main extends JFrame {
 		panelHeight = height - insets.top - insets.bottom;
 		Collections.shuffle(list);
 		
-//		il = new ImageLoader();
-//		il.start();
+		il = new ImageLoader(list, panelWidth, panelHeight);
+		il.run();
 		
 		panel = new JPanel();
 		panel.setLayout(new GridBagLayout());
@@ -368,4 +368,20 @@ public class Main extends JFrame {
 //			t.start();
 //		}
 //	}
+	
+	private class ImageLoader implements Runnable {
+		private List<Data> list;
+		private int panelWidth, panelHeight;
+		public ImageLoader(List<Data> list, int panelWidth, int panelHeight) {
+			this.list = new ArrayList<Data>();
+			for(Data d : list) {
+				this.list.add(d);
+			}
+		}
+		
+		@Override
+		public void run() {
+			System.out.println(list);
+		}
+	}
 }
