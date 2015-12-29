@@ -86,14 +86,12 @@ public class Main extends JFrame {
 			
 			// Read data
 			while((line = br.readLine()) != null) {
-				if(line.indexOf(" ", line.indexOf(" ") + 1) != -1) {
-					String[] columns = line.split(" ");
-					list.add(new Data(Integer.parseInt(columns[0]), columns[1], columns[2]));
-				}
-				else {
+				String[] columns = line.split(" ", 3);
+				if(columns.length < 3) {
 					JOptionPane.showMessageDialog(new JFrame(), "Error parsing file: " + IMAGES_FILE_DIR);
 					System.exit(1);
 				}
+				list.add(new Data(Integer.parseInt(columns[0]), columns[1], columns[2]));
 			}
 		}
 		catch(FileNotFoundException e) {
