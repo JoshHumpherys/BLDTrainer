@@ -48,12 +48,11 @@ public class Main extends JFrame {
 	public ImageLoader il;
 	public boolean dirForward;
 	
-	public boolean all = true;
-	public int mode = -1;
-	public Map<Integer, String> modes;
-	public List<Data> list;
-	public boolean toShowImage = true;
+	public int mode = 0;
 	public int index = 0;
+	public Map<Integer, String> modesMap;
+	public List<Mode> modes;
+	public boolean toShowImage = true;
 	
 	public JPanel panel;
 	public JLabel label;
@@ -70,14 +69,14 @@ public class Main extends JFrame {
 		setVisible(true);
 		font = new Font("TimesRoman", Font.PLAIN, height / 10);
 		
-		list = new ArrayList<Data>();
 		try {
 			FileReader fr = new FileReader(IMAGES_FILE_DIR);
 			BufferedReader br = new BufferedReader(fr);
 			String line = null;
 			
 			// Read mode names
-			modes = new TreeMap<Integer, String>();
+			modesMap = new TreeMap<Integer, String>();
+			modesMap.put(0, "All");
 			while((line = br.readLine()) != null) {
 				if(line.indexOf("#") == 0) {
 					break;
@@ -85,10 +84,7 @@ public class Main extends JFrame {
 				try {
 					int splitIndex = line.indexOf(" ");
 					int modeNumber = Integer.parseInt(line.substring(0, splitIndex));
-					if(mode == -1) {
-						mode = modeNumber;
-					}
-					modes.put(modeNumber, line.substring(splitIndex + 1));
+					modesMap.put(modeNumber, line.substring(splitIndex + 1));
 				}
 				catch(NumberFormatException e) {
 					JOptionPane.showMessageDialog(new JFrame(), "Error parsing file: " + IMAGES_FILE_DIR);
@@ -96,17 +92,21 @@ public class Main extends JFrame {
 				}
 			}
 			
+			modes = new ArrayList<Mode>();
+			for(int i = 0; i <= modesMap.size(); i++) {
+				modes.add(new Mode());
+			}
+			
 			// Read data
 			while((line = br.readLine()) != null) {
-				if(line.indexOf(" ", line.indexOf(" ") + 1) != -1) {
-					// TODO fix for multiple words
-					String[] columns = line.split(" ");
-					list.add(new Data(Integer.parseInt(columns[0]), columns[1], columns[2]));
-				}
-				else {
+				String[] columns = line.split(" ", 3);
+				if(columns.length < 3) {
 					JOptionPane.showMessageDialog(new JFrame(), "Error parsing file: " + IMAGES_FILE_DIR);
 					System.exit(1);
 				}
+				Data d = new Data(Integer.parseInt(columns[0]), columns[1], columns[2]);
+				modes.get(0).add(d);
+				modes.get(Integer.parseInt(columns[0])).add(d);
 			}
 		}
 		catch(FileNotFoundException e) {
@@ -124,9 +124,11 @@ public class Main extends JFrame {
 		Insets insets = getInsets();
 		panelWidth = width - insets.right - insets.left;
 		panelHeight = height - insets.top - insets.bottom;
-		Collections.shuffle(list);
+		for(Mode m : modes) {
+			m.shuffle();
+		}
 		
-		il = new ImageLoader(list, panelWidth, panelHeight);
+		il = new ImageLoader(modes, panelWidth, panelHeight);
 		il.start();
 		
 		panel = new JPanel();
@@ -143,8 +145,8 @@ public class Main extends JFrame {
 			public void keyPressed(KeyEvent e) {
 				switch(e.getKeyCode()) {
 				case KeyEvent.VK_SHIFT:
-					String prompt = "Modes:\n0) All\n";
-					Iterator mapIterator = modes.entrySet().iterator();
+					String prompt = "Modes:\n";
+					Iterator mapIterator = modesMap.entrySet().iterator();
 					while(mapIterator.hasNext()) {
 						Map.Entry entry = (Map.Entry)mapIterator.next();
 						prompt += entry.getKey() + ") " + entry.getValue() + (mapIterator.hasNext() ? "\n" : "");
@@ -152,21 +154,12 @@ public class Main extends JFrame {
 					}
 					String requestedMode = JOptionPane.showInputDialog(new JFrame(), prompt);
 					try {
-						if(requestedMode.equals("0")) {
-							mode = 0;
-							all = true;
-						}
-						else {
-							mode = Integer.parseInt(requestedMode);
-							all = false;
-						}
+						mode = Integer.parseInt(requestedMode);
+						index = 0;
+						modes.get(mode).shuffle();
 					}
 					catch(NumberFormatException nfe) {
 						JOptionPane.showMessageDialog(new JFrame(), "Error: Bad input");
-					}
-					// only break if all or currently on same mode
-					if(all || list.get(index).getMode() == mode) {
-						break;
 					}
 				case KeyEvent.VK_RIGHT:
 				case KeyEvent.VK_D:
@@ -213,20 +206,25 @@ public class Main extends JFrame {
 	
 	private JLabel next(int width, int height, int n) {
 		addToIndex(n);
-//		index += n;
-		int startIndex = index;
-		do {
-//			index %= list.size();
-			Data current = list.get(index);
-			if(all || current.getMode() == mode) {
-				return new JLabel(new ImageIcon(new LoadedImage(current.getPair(), width, height).getImage()));
-			}
-			addToIndex(Integer.signum(n));
-//			index += Integer.signum(n);
-		}
-		while(index != startIndex);
-		return null;
+		return new JLabel(new ImageIcon(new LoadedImage(modes.get(mode).get(index).getPair(), width, height).getImage()));
 	}
+	
+//	private JLabel next(int width, int height, int n) {
+//		addToIndex(n);
+////		index += n;
+//		int startIndex = index;
+//		do {
+////			index %= list.size();
+//			Data current = modes.get(mode).get(index);
+//			if(all || current.getMode() == mode) {
+//				return new JLabel(new ImageIcon(new LoadedImage(current.getPair(), width, height).getImage()));
+//			}
+//			addToIndex(Integer.signum(n));
+////			index += Integer.signum(n);
+//		}
+//		while(index != startIndex);
+//		return null;
+//	}
 	
 	private JLabel last(int width, int height) {
 		return next(width, height, -1);
@@ -237,7 +235,7 @@ public class Main extends JFrame {
 	}
 	
 	private JLabel flip(int width, int height) {
-		Data data = list.get(index);
+		Data data = modes.get(mode).get(index);
 
 		toShowImage = !toShowImage;
 		
@@ -253,7 +251,7 @@ public class Main extends JFrame {
 	
 	private void addToIndex(int n) {
 		index += n;
-		int size = list.size();
+		int size = modes.get(mode).getSize();
 		index = ((index % size) + size) % size;
 	}
 	
@@ -277,6 +275,25 @@ public class Main extends JFrame {
 		@Override
 		public String toString() {
 			return pair + "=" + imageString;
+		}
+	}
+	
+	private class Mode {
+		private List<Data> list;
+		public Mode() {
+			list = new ArrayList<Data>();
+		}
+		public void add(Data d) {
+			list.add(d);
+		}
+		public Data get(int i) {
+			return list.get(i);
+		}
+		public void shuffle() {
+			Collections.shuffle(list);
+		}
+		public int getSize() {
+			return list.size();
 		}
 	}
 	
@@ -309,12 +326,12 @@ public class Main extends JFrame {
 	private class ImageLoader extends Thread {
 		private LoadedImage current;
 		
-		private List<Data> list;
+		private List<Mode> modes;
 		private int width, height;
-		public ImageLoader(List<Data> list, int width, int height) {
-			this.list = new ArrayList<Data>();
-			for(Data d : list) {
-				this.list.add(d);
+		public ImageLoader(List<Mode> modes, int width, int height) {
+			this.modes = new ArrayList<Mode>();
+			for(Mode m : modes) {
+				this.modes.add(m);
 			}
 			this.width = width;
 			this.height = height;
@@ -322,6 +339,11 @@ public class Main extends JFrame {
 		
 		@Override
 		public void run() {
+			current = new LoadedImage(modes.get(mode).get(index).getPair(), width, height);
+		}
+		
+		public LoadedImage getCurrent() {
+			return current;
 		}
 	}
 }
