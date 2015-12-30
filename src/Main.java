@@ -12,8 +12,10 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -50,6 +52,7 @@ public class Main extends JFrame {
 	
 	public int mode = 0;
 	public int index = 0;
+	public int indexBeforeModify = 0;
 	public Map<Integer, String> modesMap;
 	public List<Mode> modes;
 	public boolean toShowImage = true;
@@ -206,25 +209,8 @@ public class Main extends JFrame {
 	
 	private JLabel next(int width, int height, int n) {
 		addToIndex(n);
-		return new JLabel(new ImageIcon(new LoadedImage(modes.get(mode).get(index).getPair(), width, height).getImage()));
+		return new JLabel(new ImageIcon(il.getCurrent().getImage()));
 	}
-	
-//	private JLabel next(int width, int height, int n) {
-//		addToIndex(n);
-////		index += n;
-//		int startIndex = index;
-//		do {
-////			index %= list.size();
-//			Data current = modes.get(mode).get(index);
-//			if(all || current.getMode() == mode) {
-//				return new JLabel(new ImageIcon(new LoadedImage(current.getPair(), width, height).getImage()));
-//			}
-//			addToIndex(Integer.signum(n));
-////			index += Integer.signum(n);
-//		}
-//		while(index != startIndex);
-//		return null;
-//	}
 	
 	private JLabel last(int width, int height) {
 		return next(width, height, -1);
@@ -250,9 +236,11 @@ public class Main extends JFrame {
 	}
 	
 	private void addToIndex(int n) {
+		indexBeforeModify = index;
 		index += n;
 		int size = modes.get(mode).getSize();
 		index = ((index % size) + size) % size;
+		il.updateCurrent(n);
 	}
 	
 	private class Data {
@@ -295,11 +283,17 @@ public class Main extends JFrame {
 		public int getSize() {
 			return list.size();
 		}
+		@Override
+		public String toString() {
+			return list.toString();
+		}
 	}
 	
 	private class LoadedImage {
 		private Image image;
+		private String pair;
 		public LoadedImage(String pair, int width, int height) {
+			this.pair = pair;
 			try {
 				image = ImageIO.read(new File("img/" + pair + ".png"));
 			}
@@ -321,10 +315,20 @@ public class Main extends JFrame {
 		public Image getImage() {
 			return image;
 		}
+		@Override
+		public String toString() {
+			return pair;
+		}
 	}
 	
 	private class ImageLoader extends Thread {
+		private static final int LIST_SIZE = 20;
+		
 		private LoadedImage current;
+		private LinkedList<LoadedImage> forward, backward, forwardQueue, backwardQueue;
+		private int forwardToAdd, backwardToAdd;
+		private int oldIndex;
+		
 		
 		private List<Mode> modes;
 		private int width, height;
@@ -335,11 +339,133 @@ public class Main extends JFrame {
 			}
 			this.width = width;
 			this.height = height;
+			
+			current = new LoadedImage(modes.get(mode).get(0).getPair(), width, height);
+			forward = new LinkedList<LoadedImage>();
+			backward = new LinkedList<LoadedImage>();
+			forwardQueue = new LinkedList<LoadedImage>();
+			backwardQueue = new LinkedList<LoadedImage>();
+			forwardToAdd = backwardToAdd = 0;
+			oldIndex = 0;
 		}
 		
 		@Override
 		public void run() {
-			current = new LoadedImage(modes.get(mode).get(index).getPair(), width, height);
+			synchronized(this) {
+				while(true) {
+					int size = modes.get(mode).getSize();
+					Mode m = modes.get(mode);
+					int startIndex = indexBeforeModify;
+					int i = startIndex + 1;
+					int count = 0;
+					do {
+						if(count < forwardToAdd) {
+							i = ((i % size) + size) % size;
+							forwardQueue.addLast(new LoadedImage(m.get(i).getPair(), width, height));
+							i++;
+							count++;
+						}
+						else {
+							break;
+						}
+					}
+					while(i != startIndex);
+					forwardToAdd = 0;
+					
+					i = startIndex - 1;
+					count = 0;
+					do {
+						if(count < backwardToAdd) {
+							i = ((i % size) + size) % size;
+							backwardQueue.addLast(new LoadedImage(m.get(i).getPair(), width, height));
+							i--;
+							count++;
+						}
+						else {
+							break;
+						}
+					}
+					while(i != startIndex);
+					backwardToAdd = 0;
+					
+					notify();
+					try {
+						wait();
+					}
+					catch(InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		
+		public synchronized void updateCurrent(int n) {
+//			System.out.println("n = " + n);
+			forward.addAll(forwardQueue);
+			backward.addAll(backwardQueue);
+			forwardQueue.clear();
+			backwardQueue.clear();
+//			System.out.println("before: " + backward + ", " + current + ", " + forward);
+			if(backward.size() < 1 || forward.size() < 1) {
+				synchronized(il) {
+					try {
+						forwardToAdd = forward.size() < 1 ? Math.abs(n) : 0;
+						backwardToAdd = backward.size() < 1 ? Math.abs(n) : 0;
+						notify();
+						il.wait();
+					}
+					catch(InterruptedException e) {
+						e.printStackTrace();
+					}
+//					System.out.println(modes.get(mode));
+//					System.out.println("forwardQueue = " + forwardQueue + ", backwardQueue = " + backwardQueue);
+					if(n > 0) {
+						forward.addAll(forwardQueue);
+						backward.push(current);
+						current = forward.pop();
+//						backward.addAll(backwardQueue);
+					}
+					else if(n < 0) {
+						backward.addAll(backwardQueue);
+						forward.push(current);
+						current = backward.pop();
+//						forward.addAll(forwardQueue);
+					}
+					else {
+						forward.addAll(forwardQueue);
+						backward.addAll(backwardQueue);
+					}
+					forwardQueue.clear();
+					backwardQueue.clear();
+//					System.out.println("after (inside): " + backward + ", " + current + ", " + forward);
+					return;
+				}
+			}
+//			System.out.println("after: " + backward + ", " + current + ", " + forward);
+			if(n > 0) {
+				for(int i = 0; i < n; i++) {
+					backward.push(current);
+					while(backward.size() > LIST_SIZE) {
+						backward.removeLast();
+					}
+					current = forward.pop();
+				}
+			}
+			else if(n < 0) {
+				for(int i = 0; i < -n; i++) {
+					forward.push(current);
+					while(forward.size() > LIST_SIZE) {
+						forward.removeLast();
+					}
+					current = backward.pop();
+				}
+			}
+			
+//			System.out.println("really far after: " + backward + ", " + current + ", " + forward);
+			
+//			System.out.println("just testing queues: " + forwardQueue + ", " + backwardQueue);
+//			System.out.println(forward);
+//			System.out.println(backward);
 		}
 		
 		public LoadedImage getCurrent() {
